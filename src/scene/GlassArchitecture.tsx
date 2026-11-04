@@ -1,12 +1,13 @@
+import { Atmosphere } from './Atmosphere';
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, type ThreeEvent } from '@react-three/fiber';
-import { Billboard, Environment, Lightformer, MeshReflectorMaterial, MeshTransmissionMaterial, RoundedBox, type MeshTransmissionMaterialProps } from '@react-three/drei';
+import { Billboard, Environment, Lightformer, MeshTransmissionMaterial, RoundedBox, type MeshTransmissionMaterialProps } from '@react-three/drei';
 import { Bloom, EffectComposer, ToneMapping, Vignette } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 import * as THREE from 'three';
 import { CLIENT_REGIONS, connectionId, describeFlow, sceneFlows } from '../flow-graph';
 import { clientRadius, curveForEdge, positionFor, radiusFor } from '../scene-layout';
-import { channelEdge, channelFrame, makeGlassChannel } from '../scene-geometry';
+import { channelFrame, makeFlowConduit } from '../scene-geometry';
 import type { Connection, Entity } from '../entities';
 
 const v=(x:number,y:number,z:number)=>new THREE.Vector3(x,y,z);
@@ -57,21 +58,22 @@ export function SolidEntity({entity,selected,onSelect}:{entity:Entity;selected:b
  </group></group>;
 }
 export function StructuralFlow({edge,entities,day,active,playing,reduced,onSelect,labels=false}:{edge:Connection;entities:Entity[];day:number;active:boolean;playing:boolean;reduced:boolean;onSelect:(id:string)=>void;labels?:boolean}){
- const curve=useMemo(()=>curveForEdge(edge,entities),[edge,entities]),visual={...describeFlow(edge,day),color:edge.type==='uses'?'#a67aff':edge.type==='depends'?'#37cfe2':edge.type==='produces'?'#eaaf5a':edge.to.startsWith('water')?'#3dd7cb':'#8a9cdf'},width=active?1.02:.64;
- const endWidths=useMemo<[number,number]>(()=>[radiusFor(entities.find(e=>e.id===edge.from)!)*1.45,radiusFor(entities.find(e=>e.id===edge.to)!)*1.45],[entities,edge]);
- const geometry=useMemo(()=>makeGlassChannel(curve,width,.23,84,0,endWidths),[curve,width,endWidths]),core=useMemo(()=>makeGlassChannel(curve,width*.62,.035,72,.035,[endWidths[0]*.62,endWidths[1]*.62]),[curve,width,endWidths]);
- const rails=useMemo(()=>[-1,1].map(side=>channelEdge(curve,width,side,.17,endWidths)),[curve,width,endWidths]);
- useEffect(()=>()=>{geometry.dispose();core.dispose()},[geometry,core]);
- const beads=useRef<THREE.InstancedMesh>(null),dummy=useMemo(()=>new THREE.Object3D(),[]),time=useRef(0),count=active?6:3;
- useFrame((_,delta)=>{if(playing&&!reduced)time.current+=delta;if(!beads.current)return;for(let i=0;i<count;i++){const t=(i/count+time.current*.075)%1,frame=channelFrame(curve,t);dummy.position.copy(frame.center).addScaledVector(frame.up,.22);dummy.scale.setScalar(active?.095:.065);dummy.updateMatrix();beads.current.setMatrixAt(i,dummy.matrix);}beads.current.instanceMatrix.needsUpdate=true;});
- const arrowFrame=channelFrame(curve,.73),arrowRotation=new THREE.Quaternion().setFromUnitVectors(v(0,1,0),arrowFrame.tangent);
+ const curve=useMemo(()=>curveForEdge(edge,entities),[edge,entities]);
+ const visual={...describeFlow(edge,day),color:edge.type==='uses'?'#875ad4':edge.type==='depends'?'#20a4bf':edge.type==='produces'?'#bf8d45':edge.to.startsWith('water')?'#28b7a9':'#738dc9'};
+ const width=active?1.65:1.32,height=active?1.25:1.06;
+ const ends=useMemo<[number,number]>(()=>[Math.min(width,radiusFor(entities.find(e=>e.id===edge.from)!)*1.12),Math.min(width,radiusFor(entities.find(e=>e.id===edge.to)!)*1.12)],[entities,edge,width]);
+ const shell=useMemo(()=>makeFlowConduit(curve,width,height,96,ends),[curve,width,height,ends]);
+ const core=useMemo(()=>makeFlowConduit(curve,width*.35,height*.35,96,[ends[0]*.35,ends[1]*.35]),[curve,width,height,ends]);
+ useEffect(()=>()=>{shell.dispose();core.dispose()},[shell,core]);
+ const packets=useRef<THREE.InstancedMesh>(null),dummy=useMemo(()=>new THREE.Object3D(),[]),time=useRef(0),count=active?7:5,axis=useMemo(()=>v(0,1,0),[]);
+ useFrame((_,delta)=>{if(playing&&!reduced)time.current+=Math.min(delta,.06);if(!packets.current)return;for(let i=0;i<count;i++){const t=(i/count+time.current*.06)%1,frame=channelFrame(curve,t);const taper=Math.min(1,.35+Math.min(t,1-t)*5);dummy.position.copy(frame.center).addScaledVector(frame.up,height*.19*taper);dummy.quaternion.setFromUnitVectors(axis,frame.tangent);dummy.scale.set(width*.16*taper,height*.48*taper,width*.16*taper);dummy.updateMatrix();packets.current.setMatrixAt(i,dummy.matrix)}packets.current.instanceMatrix.needsUpdate=true;});
+ const collars=useMemo(()=>[0,1].map((t,i)=>{const frame=channelFrame(curve,t);return {point:frame.center,rotation:new THREE.Quaternion().setFromUnitVectors(v(0,0,1),frame.tangent),radius:ends[i]/2}}),[curve,ends]);
  return <group name={'flow:'+connectionId(edge)} onClick={event=>{event.stopPropagation();onSelect(edge.to)}} onPointerOver={event=>{event.stopPropagation();document.body.style.cursor='pointer'}} onPointerOut={()=>{document.body.style.cursor='auto'}}>
- <mesh geometry={core}><meshPhysicalMaterial color={visual.color} roughness={.16} metalness={.13} clearcoat={1} emissive={visual.color} emissiveIntensity={active?1.3:.5}/></mesh>
- <mesh geometry={geometry}><meshPhysicalMaterial color='#5a7a99' metalness={.1} roughness={.3} clearcoat={1} transparent opacity={.18} depthWrite={false}/></mesh>
- {rails.map((rail,i)=><group key={i}><mesh><tubeGeometry args={[rail,84,.055,9,false]}/><meshPhysicalMaterial color='#56738a' metalness={.8} roughness={.19} clearcoat={1}/></mesh><mesh><tubeGeometry args={[rail,84,.013,6,false]}/><meshStandardMaterial color={visual.color} emissive={visual.color} emissiveIntensity={active?1.45:.3} toneMapped={!active}/></mesh></group>)}
- <mesh position={arrowFrame.center.clone().addScaledVector(arrowFrame.up,.18)} quaternion={arrowRotation}><coneGeometry args={[active?.19:.13,active?.43:.3,6]}/><meshStandardMaterial color={visual.color} emissive={visual.color} emissiveIntensity={active?.45:.15} metalness={.12} roughness={.18}/></mesh>
- {labels&&active&&<group position={curve.getPointAt(edge.type==='uses'?.48:.55)}><PhysicalLabel name={visual.title} subtitle={edge.type==='uses'?'Client → product':visual.detail} color={visual.color} position={[0,.8,0]} width={3.1}/></group>}
- <instancedMesh ref={beads} args={[undefined,undefined,count]}><sphereGeometry args={[1,12,10]}/><meshStandardMaterial color={PEARL} emissive={PEARL} emissiveIntensity={active?2.1:.9} toneMapped={false}/></instancedMesh>
+ <mesh geometry={core}><meshPhysicalMaterial color={visual.color} emissive={visual.color} emissiveIntensity={active?.25:.12} roughness={.2} metalness={.12} clearcoat={1}/></mesh>
+ <instancedMesh ref={packets} frustumCulled={false} args={[undefined,undefined,count]}><capsuleGeometry args={[1,1.4,4,12]}/><meshStandardMaterial color={visual.color} emissive={visual.color} emissiveIntensity={1.2} roughness={.15}/></instancedMesh>
+ <mesh geometry={shell}><MeshTransmissionMaterial transmissionSampler samples={6} transmission={1} thickness={.12} ior={1.08} roughness={.025} clearcoat={.7} chromaticAberration={.005} anisotropicBlur={.005} color='#f4faff' attenuationColor={visual.color} attenuationDistance={20} envMapIntensity={.85}/></mesh>
+ {collars.map((c,i)=><mesh key={i} position={c.point} quaternion={c.rotation} scale={[1,height/width,1]}><torusGeometry args={[c.radius,.04,10,40]}/><meshPhysicalMaterial color='#bed9e9' metalness={.7} roughness={.18} clearcoat={1}/></mesh>)}
+ {labels&&active&&<group position={curve.getPointAt(.53)}><PhysicalLabel name={visual.title} subtitle={visual.detail} color={visual.color} position={[0,1.25,0]} width={3.1}/></group>}
  </group>;
 }
 export function StudioEnvironment(){return <>
@@ -79,6 +81,6 @@ export function StudioEnvironment(){return <>
  <directionalLight position={[-12,14,10]} intensity={2.2} color='#ffdaa8' castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-25} shadow-camera-right={30} shadow-camera-top={25} shadow-camera-bottom={-25} shadow-bias={-.0004}/>
  <directionalLight position={[20,12,-12]} intensity={3.1} color='#67d8eb'/><directionalLight position={[2,14,18]} intensity={1.4} color='#a7a8fa'/>
  <Environment resolution={256} frames={1}><color attach='background' args={['#2e435f']}/><Lightformer form='rect' intensity={7} position={[0,12,-8]} rotation={[-Math.PI/3,0,0]} scale={[22,4,1]} color='#80c6df'/><Lightformer form='rect' intensity={5} position={[-14,6,6]} rotation={[0,Math.PI/3,0]} scale={[3,12,1]} color='#9874ed'/><Lightformer form='rect' intensity={3} position={[14,3,8]} rotation={[0,-Math.PI/3,0]} scale={[10,2,1]} color='#e6af64'/><Lightformer form='rect' intensity={5} position={[0,15,5]} rotation={[-Math.PI/2,0,0]} scale={[8,20,1]} color='#d5e9f5'/></Environment>
- <mesh position={[5,-1.98,2]} rotation={[-Math.PI/2,0,0]} receiveShadow><planeGeometry args={[1000,1000]}/><MeshReflectorMaterial resolution={1024} blur={[300,140]} mixBlur={.9} mixStrength={.35} mixContrast={1.05} mirror={.65} minDepthThreshold={.2} maxDepthThreshold={.9} depthScale={.4} color='#344d65' roughness={.4} metalness={.1}/></mesh>
+ <Atmosphere/>
  </>}
-export function SceneFinishing(){return <EffectComposer multisampling={2} enableNormalPass={false}><Bloom mipmapBlur levels={5} intensity={.6} luminanceThreshold={.95} luminanceSmoothing={.3}/><ToneMapping mode={ToneMappingMode.ACES_FILMIC}/><Vignette darkness={.22} offset={.25}/></EffectComposer>}
+export function SceneFinishing(){return <EffectComposer multisampling={2} enableNormalPass={false}><Bloom mipmapBlur levels={5} intensity={.3} luminanceThreshold={1.3} luminanceSmoothing={.3}/><ToneMapping mode={ToneMappingMode.ACES_FILMIC}/><Vignette darkness={.22} offset={.25}/></EffectComposer>}

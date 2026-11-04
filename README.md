@@ -1,6 +1,8 @@
 # Climatico — a living business landscape
 
-A full-screen, interactive 3D business scene. Individual clients, products, operations, and environmental records inhabit a connected landscape of crystal vessels, dark floating platforms, and illuminated channels.
+A full-screen, interactive 3D business scene. Individual clients, products, operations, and environmental records inhabit a connected landscape of crystal vessels, dark floating platforms, and rounded translucent conduits with moving interiors.
+
+![Climatico immersive business scene](design/previews/volumetric-flows-landscape.png)
 
 ## Explore
 
@@ -35,7 +37,7 @@ All business data and environmental methods are illustrative. No real company ac
 
 ## Implementation and verification
 
-React, TypeScript, React Three Fiber, Drei, Three.js, and React Postprocessing. Instancing limits the cost of repeated client objects; shared transmission sampling, bounded planar reflections, and adaptive pixel ratio limit rendering work. Shared sampling cannot accurately render glass through other glass.
+React, TypeScript, React Three Fiber, Drei, Three.js, and React Postprocessing. Instancing limits the cost of repeated client objects; shared transmission sampling and adaptive pixel ratio limit rendering work. Shared sampling cannot accurately render glass through other glass.
 
 ```sh
 npm test
@@ -47,3 +49,5 @@ Tests cover entity identities, historical reconciliation, relationship integrity
 The build emits `dist/client` and the Worker bundle `dist/server/index.js`. Hosted publication remains unavailable due to the previously encountered source-repository authentication restriction; the local preview and public source repository are the handoff.
 
 [Product plan](PRODUCT-PLAN.md) · [3D research](design/research/solid-spatial-scene.md) · [Concepts](design/concepts/)
+
+The environment uses a gradient sky dome, distant sculpted terraces, and low additive haze. These are decorative stage elements, not business records. Principal flows have closed elliptical cross-sections with tapered ports, colored interior volumes, and moving capsules inside the outer shell. Their size and movement remain decorative, not measured throughput.

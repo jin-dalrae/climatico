@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { entityPosition } from './flow-graph';
 import type { Connection, Entity } from './entities';
-export const OVERVIEW={position:[25,17,38] as [number,number,number],target:[7,-1,5] as [number,number,number],fov:40};
+export const OVERVIEW={position:[26,13,40] as [number,number,number],target:[5,1.5,2] as [number,number,number],fov:40};
 export function positionFor(e:Entity){return new THREE.Vector3(...entityPosition(e));}
 export function clientRadius(e:Entity){const i=e.clientIndex??0;return i===0?1.16:i<6?.32:i===247?.31:.11+(i%4)*.023;}
 export function radiusFor(e:Entity){return e.kind==='client'?clientRadius(e):e.kind==='product'?1.15:e.kind==='water'?.67:e.kind==='emission'?1.02:e.kind==='waste'?.86:1.02;}

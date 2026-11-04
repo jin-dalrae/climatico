@@ -40,7 +40,7 @@ function CameraRig({selected,action,reduced,context,filter,entities}:{selected:E
 }
 function Scene(p:Props&{entities:Entity[];focusEntities:Entity[]}){
  const selected=p.entities.find(e=>e.id===p.selected)??null;
- return <><color attach='background' args={['#24374f']}/><fog attach='fog' args={['#24374f',65,160]}/><StudioEnvironment/><ClientEntities entities={p.entities} selected={p.selected} onSelect={p.onSelect} muted={false}/>{p.entities.filter(e=>e.kind!=='client').map(e=><SolidEntity key={e.id} entity={e} selected={p.selected===e.id} onSelect={p.onSelect}/>)}{p.connections&&<RelationshipPaths {...p}/>}<CameraRig selected={selected} action={p.action} reduced={p.reduced} context={p.focusEntities} filter={p.filter} entities={p.entities}/><AdaptiveDpr/><SceneFinishing/></>;
+ return <><fog attach='fog' args={['#55738b',55,135]}/><StudioEnvironment/><ClientEntities entities={p.entities} selected={p.selected} onSelect={p.onSelect} muted={false}/>{p.entities.filter(e=>e.kind!=='client').map(e=><SolidEntity key={e.id} entity={e} selected={p.selected===e.id} onSelect={p.onSelect}/>)}{p.connections&&<RelationshipPaths {...p}/>}<CameraRig selected={selected} action={p.action} reduced={p.reduced} context={p.focusEntities} filter={p.filter} entities={p.entities}/><AdaptiveDpr/><SceneFinishing/></>;
 }
 export default function World(p:Props){
  const entities=useMemo(()=>entitiesAtDay(p.day),[p.day]);
