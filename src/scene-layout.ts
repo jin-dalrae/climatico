@@ -1,10 +1,9 @@
-import type { PlacedEntity } from './scene-plan';
 import * as THREE from 'three';
 import { entityPosition } from './flow-graph';
 import type { Connection, Entity } from './entities';
-export const OVERVIEW={position:[13,11,25] as [number,number,number],target:[3.2,3.8,2] as [number,number,number],fov:43};
-export function positionFor(e:Entity){return new THREE.Vector3(...((e as PlacedEntity).scenePosition??entityPosition(e)));}
-export function clientRadius(e:Entity){if((e as PlacedEntity).sceneRadius)return (e as PlacedEntity).sceneRadius!;const i=e.clientIndex??0;return i===0?1.16:i<6?.32:i===247?.31:.11+(i%4)*.023;}
+export const OVERVIEW={position:[25,17,38] as [number,number,number],target:[7,-1,5] as [number,number,number],fov:40};
+export function positionFor(e:Entity){return new THREE.Vector3(...entityPosition(e));}
+export function clientRadius(e:Entity){const i=e.clientIndex??0;return i===0?1.16:i<6?.32:i===247?.31:.11+(i%4)*.023;}
 export function radiusFor(e:Entity){return e.kind==='client'?clientRadius(e):e.kind==='product'?1.15:e.kind==='water'?.67:e.kind==='emission'?1.02:e.kind==='waste'?.86:1.02;}
 export function curveForEdge(edge:Connection,entities:Entity[]){
  const source=entities.find(e=>e.id===edge.from),target=entities.find(e=>e.id===edge.to);
