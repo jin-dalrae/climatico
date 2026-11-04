@@ -1,0 +1,46 @@
+{
+  "plan": {
+    "title": "Office operations orbit and connected outputs",
+    "description": "Orbit view centered on Office operations with its directly connected water, waste, and electricity records. Office electricity is included as intermediate to connect to Electricity emissions. Shows existing sample records only; no live data or impacts allocated.",
+    "entityIds": [
+      "operation-electricity",
+      "operation-office",
+      "emission-electricity",
+      "waste-cardboard",
+      "waste-electronics",
+      "water-office"
+    ],
+    "highlightIds": [
+      "operation-office",
+      "operation-electricity",
+      "emission-electricity",
+      "water-office",
+      "waste-cardboard",
+      "waste-electronics"
+    ],
+    "layout": "orbit",
+    "spacing": 1.5,
+    "palette": "contrast",
+    "camera": "perspective",
+    "focusId": null
+  },
+  "day": 6,
+  "provider": "meta",
+  "model": "muse-spark-1.3",
+  "sample": true,
+  "sourceIds": [
+    "sample-office-001",
+    "sample-electricity-001",
+    "sample-emissions-001",
+    "sample-water-001",
+    "sample-waste-001",
+    "sample-waste-002"
+  ],
+  "connectionIds": [
+    "operation-office::operation-electricity",
+    "operation-office::water-office",
+    "operation-office::waste-cardboard",
+    "operation-office::waste-electronics",
+    "operation-electricity::emission-electricity"
+  ]
+}

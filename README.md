@@ -72,3 +72,13 @@ The scene uses React Three Fiber, Drei, Three.js, and React Postprocessing. Prin
 A locally generated studio environment, shared transmission sampling, bounded planar reflections, selective bloom, and explicit ACES tone mapping establish the glass rendering pipeline. Repeated clients use instancing, secondary relationships use batched geometry, and paused/reduced-motion views use demand rendering. These are performance measures, not a device-independent frame-rate guarantee. Shared transmission cannot reproduce glass seen through other glass accurately.
 
 Implementation decisions and primary documentation are in [the spatial scene research](design/research/solid-spatial-scene.md). Geometry tests check closed topology, outward winding, curved frames, physical dimensions, and port tapering. Browser checks cover the rendered scene, orbiting, individual picking, exact connection endpoints, route navigation, focused views, history, and reduced-motion camera updates.
+
+## Meta scene director
+
+Use **Design this space with Meta** above the scene to describe a view. `/api/scene` makes a real server-side Muse Spark request with a JSON Schema response format. Meta chooses individual entity IDs, highlights, a lanes/orbit/terraces layout, spacing, palette, camera angle, and optional focal entity. Follow-up prompts include the current validated plan.
+
+The server validates every ID against the selected snapshot, restricts all layout parameters, and derives source IDs and directed connections from the authoritative sample registry. The client compiles that plan into actual React Three Fiber positions, materials, channels, and camera framing. It does not execute model-generated JavaScript or load model-supplied assets. Entity names, units, metrics, and connection endpoints come from the records, not model prose.
+
+Undo, Original view, and JSON scene-plan export are available in the designer. Changing the snapshot clears a generated plan; cancellation, invalid output, and provider failures preserve the current view. Scene plans last for the session. This feature arranges existing records; it does not yet ingest business files, discover new relationships, simulate growth, or generate arbitrary 3D meshes. It uses Meta's API; the other sponsor integrations remain planned.
+
+See [the scene director implementation notes](design/research/meta-scene-director.md).

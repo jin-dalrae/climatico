@@ -1,3 +1,4 @@
+import { generateScene } from './scene-api';
 import { AREAS, DAYS, EVENTS, getSnapshot, type ZoneId } from '../src/data';
 import { entityAtDay, entityContext } from '../src/entities';
 
@@ -7,7 +8,7 @@ const allowedAreas=new Set(AREAS.map(a=>a.id));
 export async function handleApi(request:Request,env:Config,upstream:typeof fetch=fetch):Promise<Response>{
  const path=new URL(request.url).pathname;
  if(path==='/api/status'&&request.method==='GET')return json({meta:Boolean(env.MODEL_API_KEY),model:'muse-spark-1.3',businessData:'sample'});
- if(path!=='/api/ask')return json({error:'Not found.'},404);
+ if(path!=='/api/ask'&&path!=='/api/scene')return json({error:'Not found.'},404);
  if(request.method!=='POST')return json({error:'Use POST for assistant questions.'},405);
  // Hosted sites remain owner-private. Local preview has no platform identity header.
  if(env.LOCAL_DEV!=='1'&&!request.headers.get('oai-authenticated-user-id'))return json({error:'Sign in to use the assistant.'},401);
@@ -15,12 +16,13 @@ export async function handleApi(request:Request,env:Config,upstream:typeof fetch
  if(origin&&origin!==new URL(request.url).origin)return json({error:'This origin is not allowed.'},403);
  if(!request.headers.get('content-type')?.includes('application/json'))return json({error:'Send a JSON question.'},415);
  if(!env.MODEL_API_KEY)return json({error:'The Meta assistant is not configured on this server yet. Your company world is still available.'},503);
- let body:{question?:unknown;day?:unknown;area?:unknown;history?:unknown;entityId?:unknown};
+ let body:{question?:unknown;day?:unknown;area?:unknown;history?:unknown;entityId?:unknown;currentScene?:unknown};
  try{const reader=request.body?.getReader();if(!reader)return json({error:'A question is required.'},400);const chunks:Uint8Array[]=[];let size=0;while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>12000){await reader.cancel();return json({error:'Question payload is too large.'},413);}chunks.push(value);}const bytes=new Uint8Array(size);let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}body=JSON.parse(new TextDecoder().decode(bytes));}catch{return json({error:'Could not read the question.'},400);}
  if(!body||typeof body.question!=='string'||!body.question.trim()||body.question.length>1500)return json({error:'Ask a question between 1 and 1,500 characters.'},400);
  if(typeof body.day!=='number'||!Number.isInteger(body.day)||body.day<0||body.day>6)return json({error:'Select a valid sample date.'},400);
  if(body.area!==null&&body.area!==undefined&&!allowedAreas.has(body.area as ZoneId))return json({error:'Select a valid company area.'},400);
  if(body.entityId!==null&&body.entityId!==undefined&&(typeof body.entityId!=='string'||!entityAtDay(body.entityId,body.day)))return json({error:'Select an entity available at this date.'},400);
+ if(path==='/api/scene')return generateScene(body.question.trim(),body.day,body.currentScene,env.MODEL_API_KEY,upstream);
  const snapshot=getSnapshot(body.day),baseline=getSnapshot(0);
  const context={sample:true,workspace:'Climatico sample company',date:DAYS[body.day]+' 2026',selectedArea:body.area||'company',entityGraph:entityContext(body.entityId as string|null|undefined,body.day),snapshot,baseline,baselineDate:DAYS[0]+' 2026',mrrChange:snapshot.mrr-baseline.mrr,mrrChangePercent:Number(((snapshot.mrr/baseline.mrr-1)*100).toFixed(1)),netCustomerChange:snapshot.customers-baseline.customers,events:EVENTS.filter(e=>e.day<=Number(body.day)),sourceCoverage:{github:'sample only',stripe:'sample only',team:'manual sample only',cloudSpend:'missing',environmentalImpact:'illustrative source fixtures only; no measured data or validated company inventory'},note:'Snapshots report cumulative weekly release counts, USD monthly recurring revenue, active subscriptions, and manually entered team headcount. Events are a selected activity feed, not an exhaustive accounting ledger. The 14-person team has no daily changes in this sample week. Each client is an independent synthetic account. Per-client MRR allocations reconcile to the selected aggregate snapshot but are not invoices. Environmental fixtures, including activity inputs and calculation factors, are entirely illustrative and only available on Nov 2.'};
  const history=Array.isArray(body.history)?body.history.slice(-6).filter((m):m is {role:'user'|'assistant';text:string}=>Boolean(m&&typeof m==='object'&&['user','assistant'].includes(m.role)&&typeof m.text==='string')).map(m=>({role:m.role,content:m.text.slice(0,1500)})):[];
